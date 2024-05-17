@@ -1,6 +1,9 @@
 import { LoginService, LoginRequestData, LoginResponseData } from "./interface";
 
 export class LoginApiService extends LoginService {
+  private refreshingTokenPromise: Promise<LoginResponseData | null> | null =
+    null;
+
   public async login(payload: LoginRequestData): Promise<LoginResponseData> {
     const response: LoginResponseData = await this.fetchPost(
       "/login/",
@@ -30,21 +33,40 @@ export class LoginApiService extends LoginService {
 
     try {
       const parsedToken = this.parseJwt(token?.access);
-
-      if (new Date().getTime() / 1000 > parsedToken.exp) {
-        const response: LoginResponseData = await this.fetchPost(
-          "/refresh/",
-          { method: "POST" },
-          { refresh: token.refresh }
-        );
-        this.storeInLocalStorage(response);
+      if (new Date().getTime() / 1000 <= parsedToken.exp) {
+        return token;
+      } else {
+        if (!this.refreshingTokenPromise) {
+          this.refreshingTokenPromise = this.refreshToken(token);
+          this.refreshingTokenPromise.finally(() => {
+            this.refreshingTokenPromise = null;
+          });
+        }
+        return this.refreshingTokenPromise;
       }
+    } catch (e) {
+      console.log(e);
+      this.logout();
+      return null;
+    }
+  }
+
+  private async refreshToken(
+    token: LoginResponseData
+  ): Promise<LoginResponseData | null> {
+    try {
+      const response: LoginResponseData = await this.fetchPost(
+        "/refresh/",
+        { method: "POST" },
+        { refresh: token.refresh }
+      );
+      this.storeInLocalStorage(response);
       return this.retrieveFromLocalStorage();
     } catch (e) {
       console.log(e);
       this.logout();
+      return null;
     }
-    return null;
   }
 
   private loginDataKey = "loginData";

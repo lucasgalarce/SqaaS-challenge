@@ -77,7 +77,7 @@ In a production environment, with a proper JWT generating API, and a proper JWT 
 
 Provide an answer below:
 
-> DELETE THIS QUOTE AND REPLACE IT WITH YOUR ANSWER
+Si, puede afectar la performance (ya que es ineficiente llamar varias veces al mismo endpoint sin necesidad).
 
 ---
 
